@@ -3,6 +3,7 @@ import { FIXED_GROUPS, GROUP_LABEL, MONTHS, MONTHS_SHORT, health, kindOf, type D
 import { api, ApiError, brl, brl2, buildYear, fmtDate, pct, toggleTheme, type Category, type Me, type ReportRow } from "../lib";
 import { navigate, toast, usePath } from "../store";
 import { Confirm, Icon, Link, Logo, Skeleton } from "../components/ui";
+import TrocarSenha from "../components/TrocarSenha";
 
 type Key = { id: string; code: string; plan: string; status: string; label: string; salon: string | null; activated_at: string | null; expires_at: string | null; note: string | null; created_at: string };
 type Client = { id: string; name: string; city: string | null; owner: string | null; email: string | null; last_seen: string | null; entries_month: number; key_id: string | null; plan: string | null; label: string; expires_at: string | null };
@@ -143,6 +144,9 @@ function Geral() {
                 </div>
               )) : <p className="hint" style={{ marginTop: 10 }}>Nenhum acesso ainda.</p>}
             </div>
+          </div>
+          <div className="card" style={{ marginTop: 14 }}>
+            <div className="row"><div><h3>Sua conta</h3><p className="sub">Troque a senha provisória no primeiro acesso.</p></div><TrocarSenha /></div>
           </div>
         </>
       )}

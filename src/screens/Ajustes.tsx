@@ -2,6 +2,7 @@ import { useState, type FormEvent } from "react";
 import { api, ApiError, fmtDate, toggleTheme } from "../lib";
 import { toast, useStore } from "../store";
 import { Icon } from "../components/ui";
+import TrocarSenha from "../components/TrocarSenha";
 
 const PLAN: Record<string, string> = { mensal: "Mensal", trimestral: "Trimestral", semestral: "Semestral", anual: "Anual" };
 
@@ -95,6 +96,7 @@ export default function Ajustes() {
             <h3>Sua conta</h3>
             <div className="kv"><span>Nome</span><span>{me.user?.name}</span><span>E-mail</span><span style={{ wordBreak: "break-all" }}>{me.user?.email}</span></div>
             <div className="row" style={{ marginTop: 16, justifyContent: "flex-start" }}>
+              <TrocarSenha />
               <button className="ghost" type="button" onClick={toggleTheme}>{Icon.moon} Modo claro/escuro</button>
               <button className="ghost danger" type="button" onClick={logout}>{Icon.out} Sair</button>
             </div>

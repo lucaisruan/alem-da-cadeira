@@ -223,6 +223,25 @@ app.get("/me", async (c) => {
   });
 });
 
+/* trocar a senha (cliente ou administradora) */
+app.post("/me/password", async (c) => {
+  const u = c.get("user");
+  if (!u) return fail(c, 401, "nao_autenticado", "Entre de novo para continuar.");
+  const b = await c.req.json<{ current?: string; next?: string }>().catch(() => ({}) as { current?: string; next?: string });
+  const row = await c.env.DB.prepare("SELECT password_hash FROM users WHERE id = ?").bind(u.id).first<{ password_hash: string }>();
+  if (!row || !(await verifyPassword(b.current || "", row.password_hash))) return fail(c, 400, "senha_atual", "A senha atual não confere.");
+  const next = b.next || "";
+  if (next.length < 8 || next.length > 200) return fail(c, 400, "senha", "A nova senha precisa ter pelo menos 8 caracteres.");
+  const token = getCookie(c, COOKIE);
+  await c.env.DB.batch([
+    c.env.DB.prepare("UPDATE users SET password_hash = ? WHERE id = ?").bind(await hashPassword(next), u.id),
+    // encerra as outras sessões, mantém a atual
+    c.env.DB.prepare("DELETE FROM sessions WHERE user_id = ? AND id <> ?").bind(u.id, token ? await sha256(token) : ""),
+  ]);
+  await log(c, { salon_id: u.salon_id, user_id: u.id, event: "Trocou a senha" });
+  return c.json({ ok: true });
+});
+
 /* renovar com uma chave nova (também funciona com o plano vencido) */
 app.post("/license/renew", async (c) => {
   const u = c.get("user");
