@@ -251,7 +251,7 @@ export async function logExpirations(db: D1Database) {
     let event: string | null = null;
     let failure = 0;
     if (days === 7 || days === 1) event = `Aviso: plano vence em ${days} dia${days > 1 ? "s" : ""}`;
-    else if (days === 0 || days === -0) event = "Aviso: plano vence hoje";
+    else if (days === 0) event = "Aviso: plano vence hoje";
     else if (days === -1) {
       event = "Plano expirou e o acesso foi suspenso";
       failure = 1;
