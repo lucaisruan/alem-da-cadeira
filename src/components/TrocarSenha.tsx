@@ -2,8 +2,8 @@ import { useState, type FormEvent } from "react";
 import { api, ApiError } from "../lib";
 import { toast } from "../store";
 
-export default function TrocarSenha() {
-  const [open, setOpen] = useState(false);
+export default function TrocarSenha({ forced = false, onDone }: { forced?: boolean; onDone?: () => void }) {
+  const [open, setOpen] = useState(forced);
   const [err, setErr] = useState("");
   const [busy, setBusy] = useState(false);
   async function submit(e: FormEvent<HTMLFormElement>) {
@@ -18,7 +18,8 @@ export default function TrocarSenha() {
     try {
       await api("/me/password", { method: "POST", body: { current: f.get("current"), next: f.get("next") } });
       toast("Senha trocada.");
-      setOpen(false);
+      if (!forced) setOpen(false);
+      onDone?.();
     } catch (ex) {
       setErr(ex instanceof ApiError ? ex.message : "Não deu para trocar.");
     } finally {
@@ -27,8 +28,8 @@ export default function TrocarSenha() {
   }
   if (!open) return <button className="ghost" type="button" onClick={() => setOpen(true)}>Trocar senha</button>;
   return (
-    <form className="form" onSubmit={submit} noValidate style={{ marginTop: 12, width: "100%" }}>
-      <div><label className="l" htmlFor="pwc">Senha atual</label><input className="inp" id="pwc" name="current" type="password" autoComplete="current-password" /></div>
+    <form className="form" onSubmit={submit} noValidate style={{ marginTop: forced ? 0 : 12, width: "100%" }}>
+      <div><label className="l" htmlFor="pwc">{forced ? "Senha provisória" : "Senha atual"}</label><input className="inp" id="pwc" name="current" type="password" autoComplete="current-password" /></div>
       <div className="fieldrow">
         <div><label className="l" htmlFor="pwn">Nova senha</label><input className="inp" id="pwn" name="next" type="password" autoComplete="new-password" minLength={8} /></div>
         <div><label className="l" htmlFor="pwn2">Repita a nova senha</label><input className="inp" id="pwn2" name="next2" type="password" autoComplete="new-password" minLength={8} /></div>
@@ -36,7 +37,7 @@ export default function TrocarSenha() {
       {err && <p className="err" role="alert">{err}</p>}
       <div className="row" style={{ justifyContent: "flex-start" }}>
         <button className="cta" type="submit" disabled={busy}>{busy ? "Salvando…" : "Salvar nova senha"}</button>
-        <button className="ghost" type="button" onClick={() => setOpen(false)}>Cancelar</button>
+        {!forced && <button className="ghost" type="button" onClick={() => setOpen(false)}>Cancelar</button>}
       </div>
     </form>
   );

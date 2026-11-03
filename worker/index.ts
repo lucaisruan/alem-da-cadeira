@@ -5,7 +5,7 @@ import admin, { logExpirations } from "./admin";
 import { hashPassword, normalizeCode, randomToken, sha256, uid, verifyPassword } from "./crypto";
 
 type Env = { DB: D1Database; ASSETS: Fetcher };
-type User = { id: string; salon_id: string | null; role: "owner" | "admin"; name: string; email: string };
+type User = { id: string; salon_id: string | null; role: "owner" | "admin"; name: string; email: string; must_change_password?: number };
 type License = { code: string; plan: string; status: string; expires_at: string | null };
 type Vars = { user: User; license: License | null };
 type C = Context<{ Bindings: Env; Variables: Vars }>;
@@ -72,7 +72,7 @@ app.use("*", async (c, next) => {
   const token = getCookie(c, COOKIE);
   if (token) {
     const row = await c.env.DB.prepare(
-      `SELECT u.id, u.salon_id, u.role, u.name, u.email FROM sessions s JOIN users u ON u.id = s.user_id
+      `SELECT u.id, u.salon_id, u.role, u.name, u.email, u.must_change_password FROM sessions s JOIN users u ON u.id = s.user_id
        WHERE s.id = ? AND s.expires_at > ?`,
     )
       .bind(await sha256(token), nowIso())
@@ -217,7 +217,7 @@ app.get("/me", async (c) => {
   }
   const lic = c.get("license");
   return c.json({
-    user: { id: u.id, name: u.name, email: u.email, role: u.role },
+    user: { id: u.id, name: u.name, email: u.email, role: u.role, mustChangePassword: !!u.must_change_password },
     salon,
     license: lic ? { plan: lic.plan, expiresAt: lic.expires_at, state: licenseState(lic) } : null,
   });
@@ -234,7 +234,7 @@ app.post("/me/password", async (c) => {
   if (next.length < 8 || next.length > 200) return fail(c, 400, "senha", "A nova senha precisa ter pelo menos 8 caracteres.");
   const token = getCookie(c, COOKIE);
   await c.env.DB.batch([
-    c.env.DB.prepare("UPDATE users SET password_hash = ? WHERE id = ?").bind(await hashPassword(next), u.id),
+    c.env.DB.prepare("UPDATE users SET password_hash = ?, must_change_password = 0 WHERE id = ?").bind(await hashPassword(next), u.id),
     // encerra as outras sessões, mantém a atual
     c.env.DB.prepare("DELETE FROM sessions WHERE user_id = ? AND id <> ?").bind(u.id, token ? await sha256(token) : ""),
   ]);

@@ -12,12 +12,19 @@ if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
   process.exit(1);
 }
 const b64 = (b) => b.toString("base64").replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
-const password = b64(randomBytes(9));
+// ADMIN_SENHA fixa a senha (conta de teste); sem ela, gera uma provisória que precisa ser trocada no 1º acesso.
+const fixed = process.env.ADMIN_SENHA || "";
+if (fixed && fixed.length < 8) {
+  console.error("A senha precisa ter pelo menos 8 caracteres.");
+  process.exit(1);
+}
+const password = fixed || b64(randomBytes(9));
+const must = fixed ? 0 : 1;
 const salt = randomBytes(16);
 const hash = pbkdf2Sync(password, salt, 100000, 32, "sha256");
 const stored = `pbkdf2$100000$${b64(salt)}$${b64(hash)}`;
 const q = (s) => `'${String(s).replace(/'/g, "''")}'`;
-const sql = `INSERT INTO users (id, salon_id, role, name, email, password_hash) VALUES (${q(randomUUID())}, NULL, 'admin', ${q(name)}, ${q(email.toLowerCase())}, ${q(stored)})
-ON CONFLICT(email) DO UPDATE SET password_hash = excluded.password_hash, role = 'admin', failed_logins = 0, locked_until = NULL;`;
+const sql = `INSERT INTO users (id, salon_id, role, name, email, password_hash, must_change_password) VALUES (${q(randomUUID())}, NULL, 'admin', ${q(name)}, ${q(email.toLowerCase())}, ${q(stored)}, ${must})
+ON CONFLICT(email) DO UPDATE SET password_hash = excluded.password_hash, role = 'admin', must_change_password = excluded.must_change_password, failed_logins = 0, locked_until = NULL;`;
 execFileSync("npx", ["wrangler", "d1", "execute", "DB", remote ? "--remote" : "--local", "--command", sql], { stdio: "inherit" });
-console.log(`\nAdministradora: ${email}\nSenha provisória: ${password}\n`);
+console.log(fixed ? `\nAdministradora: ${email} (senha definida por você)\n` : `\nAdministradora: ${email}\nSenha provisória: ${password}\n`);

@@ -11,6 +11,7 @@ import Contas from "./screens/Contas";
 import Ajustes from "./screens/Ajustes";
 import Suspenso from "./screens/Suspenso";
 import Admin from "./admin/Admin";
+import PrimeiraSenha from "./screens/PrimeiraSenha";
 import { Mais, Metas, ProLabore, Reserva } from "./screens/Ferramentas";
 
 export default function App() {
@@ -31,6 +32,7 @@ export default function App() {
 
   if (!me) return <div className="center"><Logo className="boot" /></div>;
   if (!me.user) return <Auth onDone={refreshMe} />;
+  if (me.user.mustChangePassword) return <PrimeiraSenha me={me} onDone={refreshMe} />;
   if (me.user.role === "admin") return <Admin me={me} onOut={refreshMe} />;
   if (me.license?.state !== "ativa") return <Suspenso me={me} onDone={refreshMe} />;
   return (

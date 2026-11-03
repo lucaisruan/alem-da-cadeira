@@ -12,6 +12,9 @@ on:
         description: "Nome da administradora"
         required: false
         default: "Luize Freire"
+      admin_senha:
+        description: "Senha fixa (opcional, só para conta de teste). Vazio = senha provisória trocada no 1º acesso"
+        required: false
 
 concurrency:
   group: publicar
@@ -44,4 +47,7 @@ jobs:
         env:
           ADMIN_EMAIL: ${{ inputs.admin_email }}
           ADMIN_NOME: ${{ inputs.admin_nome }}
-        run: node scripts/nova-admin.mjs "$ADMIN_EMAIL" "$ADMIN_NOME" --remote
+          ADMIN_SENHA: ${{ inputs.admin_senha }}
+        run: |
+          if [ -n "$ADMIN_SENHA" ]; then echo "::add-mask::$ADMIN_SENHA"; fi
+          node scripts/nova-admin.mjs "$ADMIN_EMAIL" "$ADMIN_NOME" --remote

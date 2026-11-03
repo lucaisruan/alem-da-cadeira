@@ -32,7 +32,7 @@ export async function api<T = unknown>(path: string, opts: { method?: string; bo
 
 /* ---------- tipos ---------- */
 export type Me = {
-  user: { id: string; name: string; email: string; role: "owner" | "admin" } | null;
+  user: { id: string; name: string; email: string; role: "owner" | "admin"; mustChangePassword?: boolean } | null;
   salon: { id: string; name: string; city: string | null; tax_rate: number; settings: Settings } | null;
   license: { plan: string; expiresAt: string | null; state: "ativa" | "vencida" | "bloqueada" | "sem_chave" } | null;
 };
