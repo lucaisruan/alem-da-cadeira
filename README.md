@@ -16,15 +16,12 @@ npm run chave -- anual 1     # cria uma chave de ativação local
 npm run dev                  # http://localhost:5173
 ```
 
-## Publicar na Cloudflare (pelo GitHub)
+## Publicar na Cloudflare
 
-1. Painel da Cloudflare › Storage & Databases › D1 › **Create database** com o nome `alem-da-cadeira`. Copie o **Database ID** para `wrangler.jsonc`.
-2. Workers & Pages › Create › **Import a repository** › escolha este repositório.
-   - Build command: `npm run build`
-   - Deploy command: `npx wrangler d1 migrations apply DB --remote && npx wrangler deploy`
-3. Cada push na branch `main` publica sozinho.
+Automático pelo GitHub Actions (`.github/workflows/publicar.yml`): cada push na `main` testa, cria o banco D1 se precisar, aplica as migrações e publica em **app.luizefreire.site**.
 
-Conta da administradora (Luize) no banco publicado: `npm run admin -- email@dela.com "Luize Freire" --remote` (mostra uma senha provisória). Depois ela gera as chaves pelo próprio painel.
+- O token da Cloudflare fica no segredo `CLOUDFLARE_API_TOKEN` do repositório (Settings › Secrets and variables › Actions).
+- Conta da administradora: Actions › Publicar na Cloudflare › Run workflow, informando o e-mail. A senha provisória aparece no log do passo "Administradora"; troque no primeiro acesso.
 
 ## Fases
 
