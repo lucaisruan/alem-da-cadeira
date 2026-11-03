@@ -17,6 +17,10 @@ export const Icon = {
   right: <svg width="20" height="20" viewBox="0 0 24 24" {...P} aria-hidden="true"><path d="m9 18 6-6-6-6" /></svg>,
   x: <svg width="16" height="16" viewBox="0 0 24 24" {...P} aria-hidden="true"><path d="M18 6 6 18M6 6l12 12" /></svg>,
   check: <svg width="16" height="16" viewBox="0 0 24 24" {...P} aria-hidden="true"><path d="M20 6 9 17l-5-5" /></svg>,
+  wallet: <svg width="22" height="22" viewBox="0 0 24 24" {...P} aria-hidden="true"><path d="M20 7V5a1 1 0 0 0-1-1H5a2 2 0 0 0 0 4h15a1 1 0 0 1 1 1v10a1 1 0 0 1-1 1H5a2 2 0 0 1-2-2V6" /><path d="M17 13.5h.01" /></svg>,
+  target: <svg width="22" height="22" viewBox="0 0 24 24" {...P} aria-hidden="true"><circle cx="12" cy="12" r="9" /><circle cx="12" cy="12" r="5" /><circle cx="12" cy="12" r="1.2" /></svg>,
+  shield: <svg width="22" height="22" viewBox="0 0 24 24" {...P} aria-hidden="true"><path d="M12 3 4 6v6c0 4.5 3.4 8.2 8 9 4.6-.8 8-4.5 8-9V6z" /></svg>,
+  more: <svg width="22" height="22" viewBox="0 0 24 24" {...P} aria-hidden="true"><circle cx="5" cy="12" r="1.3" /><circle cx="12" cy="12" r="1.3" /><circle cx="19" cy="12" r="1.3" /></svg>,
   out: <svg width="20" height="20" viewBox="0 0 24 24" {...P} aria-hidden="true"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9" /></svg>,
 };
 

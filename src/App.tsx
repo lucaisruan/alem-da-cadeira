@@ -11,6 +11,7 @@ import Contas from "./screens/Contas";
 import Ajustes from "./screens/Ajustes";
 import Suspenso from "./screens/Suspenso";
 import Admin from "./admin/Admin";
+import { Mais, Metas, ProLabore, Reserva } from "./screens/Ferramentas";
 
 export default function App() {
   const [me, setMe] = useState<Me | null>(null);
@@ -45,6 +46,11 @@ const NAV = [
   { to: "/resultado", label: "DRE do mês", short: "DRE", icon: Icon.dre },
   { to: "/contas", label: "Plano de contas", short: "Contas", icon: Icon.tags },
 ];
+const TOOLS = [
+  { to: "/pro-labore", label: "Pró-labore", icon: Icon.wallet },
+  { to: "/metas", label: "Metas e prêmios", icon: Icon.target },
+  { to: "/reserva", label: "Reserva", icon: Icon.shield },
+];
 
 function Shell() {
   const path = usePath();
@@ -58,6 +64,10 @@ function Shell() {
   else if (path === "/resultado") page = <Dre />;
   else if (path === "/contas") page = <Contas />;
   else if (path === "/ajustes") page = <Ajustes />;
+  else if (path === "/pro-labore") page = <ProLabore />;
+  else if (path === "/metas") page = <Metas />;
+  else if (path === "/reserva") page = <Reserva />;
+  else if (path === "/mais") page = <Mais />;
   else page = <NotFound />;
   const cur = (to: string) => (to === path ? ("page" as const) : undefined);
 
@@ -67,6 +77,10 @@ function Shell() {
         <Link to="/" aria-label="Início"><Logo className="logo" /></Link>
         <Link to="/lancar" className="cta new">{Icon.plus} Novo lançamento</Link>
         {NAV.map((n) => (
+          <Link key={n.to} to={n.to} className="navbtn" aria-current={cur(n.to)}>{n.icon}{n.label}</Link>
+        ))}
+        <p className="navlabel">Ferramentas do método</p>
+        {TOOLS.map((n) => (
           <Link key={n.to} to={n.to} className="navbtn" aria-current={cur(n.to)}>{n.icon}{n.label}</Link>
         ))}
         <div className="foot">
@@ -91,7 +105,7 @@ function Shell() {
         <Link to="/lancamentos" className="tab" aria-current={cur("/lancamentos")}>{Icon.list}Lançamentos</Link>
         <Link to="/lancar" className="tab plus" aria-label="Novo lançamento"><span>{Icon.plus}</span></Link>
         <Link to="/resultado" className="tab" aria-current={cur("/resultado")}>{Icon.dre}DRE</Link>
-        <Link to="/contas" className="tab" aria-current={cur("/contas")}>{Icon.tags}Contas</Link>
+        <Link to="/mais" className="tab" aria-current={["/mais", "/contas", "/pro-labore", "/metas", "/reserva", "/ajustes"].includes(path) ? "page" : undefined}>{Icon.more}Mais</Link>
       </nav>
     </div>
   );
