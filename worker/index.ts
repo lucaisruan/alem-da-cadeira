@@ -1,6 +1,6 @@
 import { Hono, type Context } from "hono";
 import { getCookie, setCookie, deleteCookie } from "hono/cookie";
-import { DEFAULT_CATEGORIES, DEFAULT_TAX_RATE, DRE_GROUPS, SUGGESTED_CATEGORIES, normalizeName, type DreGroup } from "../shared/dre";
+import { DEFAULT_CATEGORIES, DEFAULT_TAX_RATE, DRE_GROUPS, SUGGESTED_CATEGORIES, normalizeName, normalizeSettings, type DreGroup } from "../shared/dre";
 import admin, { logExpirations } from "./admin";
 import { hashPassword, normalizeCode, randomToken, sha256, uid, verifyPassword } from "./crypto";
 
@@ -204,7 +204,16 @@ app.get("/me", async (c) => {
   if (!u) return c.json({ user: null });
   let salon = null;
   if (u.salon_id) {
-    salon = await c.env.DB.prepare("SELECT id, name, city, tax_rate FROM salons WHERE id = ?").bind(u.salon_id).first();
+    const row = await c.env.DB.prepare("SELECT id, name, city, tax_rate, settings FROM salons WHERE id = ?").bind(u.salon_id).first<Record<string, unknown>>();
+    if (row) {
+      let parsed: unknown = {};
+      try {
+        parsed = JSON.parse(String(row.settings || "{}"));
+      } catch {
+        /* ajustes corrompidos: volta ao padrão */
+      }
+      salon = { ...row, settings: normalizeSettings(parsed) };
+    }
   }
   const lic = c.get("license");
   return c.json({
@@ -256,6 +265,23 @@ app.patch("/salon", requireSalon, async (c) => {
   }
   if (sets.length) await c.env.DB.prepare(`UPDATE salons SET ${sets.join(", ")} WHERE id = ?`).bind(...vals, u.salon_id).run();
   return c.json({ ok: true });
+});
+
+/* ajustes das ferramentas do método: substitui o bloco enviado (proLabore, meta, reserva ou equipe) */
+app.put("/settings", requireSalon, async (c) => {
+  const salonId = c.get("user").salon_id;
+  const body = await c.req.json<Record<string, unknown>>().catch(() => ({}) as Record<string, unknown>);
+  const row = await c.env.DB.prepare("SELECT settings FROM salons WHERE id = ?").bind(salonId).first<{ settings: string }>();
+  let cur: Record<string, unknown> = {};
+  try {
+    cur = JSON.parse(row?.settings || "{}");
+  } catch {
+    cur = {};
+  }
+  for (const k of ["proLabore", "meta", "reserva", "equipe"]) if (k in body) cur[k] = body[k];
+  const next = normalizeSettings(cur);
+  await c.env.DB.prepare("UPDATE salons SET settings = ? WHERE id = ?").bind(JSON.stringify(next), salonId).run();
+  return c.json({ settings: next });
 });
 
 app.post("/ping", requireSalon, async (c) => {

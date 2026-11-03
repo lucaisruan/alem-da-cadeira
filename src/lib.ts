@@ -1,4 +1,4 @@
-import { DRE_GROUPS, emptyGroups, monthResult, type DreGroup, type GroupTotals, type MonthResult } from "../shared/dre";
+import { DRE_GROUPS, emptyGroups, monthResult, type DreGroup, type GroupTotals, type MonthResult, type Settings } from "../shared/dre";
 
 /* ---------- API ---------- */
 export class ApiError extends Error {
@@ -33,7 +33,7 @@ export async function api<T = unknown>(path: string, opts: { method?: string; bo
 /* ---------- tipos ---------- */
 export type Me = {
   user: { id: string; name: string; email: string; role: "owner" | "admin" } | null;
-  salon: { id: string; name: string; city: string | null; tax_rate: number } | null;
+  salon: { id: string; name: string; city: string | null; tax_rate: number; settings: Settings } | null;
   license: { plan: string; expiresAt: string | null; state: "ativa" | "vencida" | "bloqueada" | "sem_chave" } | null;
 };
 export type Category = { id: string; name: string; group: DreGroup; source: "padrao" | "sugestao" | "manual"; active: boolean; sort: number; uses: number };

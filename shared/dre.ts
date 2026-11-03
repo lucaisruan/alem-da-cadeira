@@ -155,3 +155,114 @@ export function parseMoneyToCents(raw: string): number {
 export function normalizeName(s: string): string {
   return s.replace(/ /g, " ").replace(/\s+/g, " ").trim();
 }
+
+/* ---------- Fase 3: ferramentas do método (abas Pró-Labore, Meta & Bonificação, Reserva Financeira) ---------- */
+
+export const INSS_RATE = 0.11;
+export const INSS_CEILING = 8475.55; // teto previdenciário 2026
+export const MIN_HISTORY_MONTHS = 6;
+
+export type Settings = {
+  proLabore: { keep1: number; keep2: number };
+  meta: { scenarios: { lucro: number; premio: number }[] };
+  reserva: { guardado: number };
+  equipe: { nome: string; base: number }[];
+};
+export const DEFAULT_SETTINGS: Settings = {
+  proLabore: { keep1: 0.1, keep2: 0.12 },
+  meta: { scenarios: [{ lucro: 0.1, premio: 0 }, { lucro: 0.1, premio: 0.01 }, { lucro: 0.1, premio: 0.02 }] },
+  reserva: { guardado: 0 },
+  equipe: [],
+};
+const clamp = (v: unknown, lo: number, hi: number, d: number) => {
+  const n = Number(v);
+  return Number.isFinite(n) ? Math.min(hi, Math.max(lo, n)) : d;
+};
+/** Junta o que veio salvo com o padrão, aparando valores fora da faixa. */
+export function normalizeSettings(raw: unknown): Settings {
+  const r = (raw && typeof raw === "object" ? raw : {}) as Partial<Settings>;
+  const d = DEFAULT_SETTINGS;
+  const sc = Array.isArray(r.meta?.scenarios) ? r.meta!.scenarios : d.meta.scenarios;
+  return {
+    proLabore: { keep1: clamp(r.proLabore?.keep1, 0, 0.5, d.proLabore.keep1), keep2: clamp(r.proLabore?.keep2, 0, 0.5, d.proLabore.keep2) },
+    meta: { scenarios: [0, 1, 2].map((i) => ({ lucro: clamp(sc[i]?.lucro, 0, 0.6, d.meta.scenarios[i].lucro), premio: clamp(sc[i]?.premio, 0, 0.3, d.meta.scenarios[i].premio) })) },
+    reserva: { guardado: clamp(r.reserva?.guardado, 0, 1e9, 0) },
+    equipe: (Array.isArray(r.equipe) ? r.equipe : [])
+      .slice(0, 30)
+      .map((p) => ({ nome: normalizeName(String(p?.nome ?? "")).slice(0, 40), base: clamp(p?.base, 0, 1e8, 0) }))
+      .filter((p) => p.nome),
+  };
+}
+
+/** Médias do ano, só com os meses que tiveram faturamento (como a planilha). */
+export function yearAverages(months: MonthResult[]) {
+  const withRev = months.filter((m) => m.revenue > 0);
+  const n = withRev.length;
+  const sum = (f: (m: MonthResult) => number) => withRev.reduce((s, m) => s + f(m), 0);
+  const revenue = sum((m) => m.revenue);
+  return {
+    n,
+    avgRevenue: n ? revenue / n : 0,
+    avgProfit: n ? sum((m) => m.profit) / n : 0,
+    margin: revenue ? sum((m) => m.profit) / revenue : 0,
+    variablePct: revenue ? sum((m) => m.variable) / revenue : 0,
+    avgFixed: n ? sum((m) => m.fixed) / n : 0,
+  };
+}
+
+export type ProLaboreOption = { keep: number; preserved: number; gross: number; inss: number; net: number; finalMargin: number; reading: string };
+export function proLabore(avg: ReturnType<typeof yearAverages>, keep1: number, keep2: number) {
+  const opt = (keep: number): ProLaboreOption => {
+    const preserved = avg.avgRevenue * keep;
+    const blocked = avg.n < MIN_HISTORY_MONTHS || avg.margin < keep1;
+    const gross = blocked ? 0 : Math.max(0, avg.avgProfit - preserved);
+    const inss = Math.min(gross, INSS_CEILING) * INSS_RATE;
+    return {
+      keep,
+      preserved,
+      gross,
+      inss,
+      net: Math.max(0, gross - inss),
+      finalMargin: avg.avgRevenue ? (avg.avgProfit - gross) / avg.avgRevenue : 0,
+      reading: avg.n < MIN_HISTORY_MONTHS ? "Aguarde mais histórico" : avg.margin < keep1 ? "Operação ainda não suporta" : gross === 0 ? "Sem espaço para pró-labore" : "Possível",
+    };
+  };
+  const situation =
+    avg.n < MIN_HISTORY_MONTHS
+      ? { label: "Base ainda curta", tone: "warn" as const }
+      : avg.margin < keep1
+        ? { label: "Sem capacidade para pró-labore", tone: "bad" as const }
+        : avg.margin > 0.3
+          ? { label: "Margem muito alta, há espaço", tone: "info" as const }
+          : avg.margin >= keep2
+            ? { label: "Saudável e confortável", tone: "good" as const }
+            : { label: "Saudável, mas justa", tone: "good" as const };
+  return { option1: opt(keep1), option2: opt(keep2), situation };
+}
+
+/** Meta que paga o próprio prêmio: custos fixos ÷ (margem de contribuição − prêmio − lucro desejado). */
+export function metaScenario(avg: ReturnType<typeof yearAverages>, lucro: number, premio: number) {
+  const contribution = 1 - avg.variablePct - premio;
+  const den = contribution - lucro;
+  const needed = den <= 0 ? 0 : avg.avgFixed / den;
+  return {
+    contribution,
+    needed,
+    viable: den > 0,
+    profit: needed * lucro,
+    prize: needed * premio,
+    growth: avg.avgRevenue ? Math.max(0, needed / avg.avgRevenue - 1) : 0,
+  };
+}
+
+export function reserve(avgFixed: number, saved: number) {
+  const min = avgFixed * 3, rec = avgFixed * 6;
+  return {
+    min,
+    rec,
+    months: avgFixed ? saved / avgFixed : 0,
+    missingMin: Math.max(0, min - saved),
+    missingRec: Math.max(0, rec - saved),
+    status: saved >= rec && rec > 0 ? { label: "Reserva completa", tone: "good" as const } : saved >= min && min > 0 ? { label: "Mínimo protegido", tone: "info" as const } : { label: "Em construção", tone: "warn" as const },
+  };
+}
