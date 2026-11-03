@@ -10,6 +10,7 @@ import Dre from "./screens/Dre";
 import Contas from "./screens/Contas";
 import Ajustes from "./screens/Ajustes";
 import Suspenso from "./screens/Suspenso";
+import Admin from "./admin/Admin";
 
 export default function App() {
   const [me, setMe] = useState<Me | null>(null);
@@ -29,7 +30,7 @@ export default function App() {
 
   if (!me) return <div className="center"><Logo className="boot" /></div>;
   if (!me.user) return <Auth onDone={refreshMe} />;
-  if (me.user.role === "admin") return <AdminSoon me={me} onOut={refreshMe} />;
+  if (me.user.role === "admin") return <Admin me={me} onOut={refreshMe} />;
   if (me.license?.state !== "ativa") return <Suspenso me={me} onDone={refreshMe} />;
   return (
     <StoreProvider me={me} refreshMe={refreshMe}>
@@ -101,19 +102,6 @@ function NotFound() {
     <div className="empty page">
       <h3>Página não encontrada</h3>
       <button className="cta" type="button" onClick={() => navigate("/")}>Voltar ao início</button>
-    </div>
-  );
-}
-
-function AdminSoon({ me, onOut }: { me: Me; onOut: () => void }) {
-  return (
-    <div className="center" style={{ padding: 16 }}>
-      <div className="empty" style={{ maxWidth: 520 }}>
-        <Logo className="mlogo" />
-        <h3>Olá, {me.user?.name}</h3>
-        <p>O painel administrativo chega na próxima fase. Sua conta de administradora já está pronta.</p>
-        <button className="ghost" type="button" onClick={async () => { await api("/auth/logout", { method: "POST" }); onOut(); }}>Sair</button>
-      </div>
     </div>
   );
 }

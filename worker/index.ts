@@ -1,6 +1,7 @@
 import { Hono, type Context } from "hono";
 import { getCookie, setCookie, deleteCookie } from "hono/cookie";
 import { DEFAULT_CATEGORIES, DEFAULT_TAX_RATE, DRE_GROUPS, SUGGESTED_CATEGORIES, normalizeName, type DreGroup } from "../shared/dre";
+import admin, { logExpirations } from "./admin";
 import { hashPassword, normalizeCode, randomToken, sha256, uid, verifyPassword } from "./crypto";
 
 type Env = { DB: D1Database; ASSETS: Fetcher };
@@ -444,6 +445,8 @@ app.get("/report", requireSalon, async (c) => {
   return c.json({ year, rows: results, years: years.results.map((r) => Number(r.y)) });
 });
 
+app.route("/admin", admin);
+
 app.all("*", (c) => fail(c, 404, "nao_encontrado", "Rota não encontrada."));
 
 app.onError((err, c) => {
@@ -451,4 +454,9 @@ app.onError((err, c) => {
   return c.json({ error: "erro_interno", message: "Algo deu errado do nosso lado. Tente de novo." }, 500);
 });
 
-export default app;
+export default {
+  fetch: app.fetch,
+  async scheduled(_e: ScheduledController, env: Env, ctx: ExecutionContext) {
+    ctx.waitUntil(logExpirations(env.DB));
+  },
+} satisfies ExportedHandler<Env>;
