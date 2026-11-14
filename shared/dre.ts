@@ -194,17 +194,21 @@ export function normalizeSettings(raw: unknown): Settings {
   };
 }
 
-/** Médias do ano, só com os meses que tiveram faturamento (como a planilha). */
+/**
+ * Médias do ano, como nas abas Pró-Labore e Meta & Bonificação da planilha:
+ * os totais somam TODOS os meses do ano (inclusive um mês com despesas e sem vendas),
+ * mas a divisão é só pelos meses que tiveram faturamento.
+ */
 export function yearAverages(months: MonthResult[]) {
-  const withRev = months.filter((m) => m.revenue > 0);
-  const n = withRev.length;
-  const sum = (f: (m: MonthResult) => number) => withRev.reduce((s, m) => s + f(m), 0);
+  const n = months.filter((m) => m.revenue > 0).length;
+  const sum = (f: (m: MonthResult) => number) => months.reduce((s, m) => s + f(m), 0);
   const revenue = sum((m) => m.revenue);
+  const profit = sum((m) => m.profit);
   return {
     n,
     avgRevenue: n ? revenue / n : 0,
-    avgProfit: n ? sum((m) => m.profit) / n : 0,
-    margin: revenue ? sum((m) => m.profit) / revenue : 0,
+    avgProfit: n ? profit / n : 0,
+    margin: revenue ? profit / revenue : 0,
     variablePct: revenue ? sum((m) => m.variable) / revenue : 0,
     avgFixed: n ? sum((m) => m.fixed) / n : 0,
   };
