@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { MONTHS, metaScenario, proLabore, reserve, yearAverages, type Settings } from "../../shared/dre";
+import { MONTHS, metaScenario, parseMoneyToCents, proLabore, reserve, yearAverages, type Settings } from "../../shared/dre";
 import { api, ApiError, brl, pct } from "../lib";
 import { toast, useStore } from "../store";
 import { Icon, Link, Skeleton } from "../components/ui";
@@ -60,6 +60,17 @@ function PctInput({ id, value, max, onCommit }: { id: string; value: number; max
       <input className="inp num" id={id} inputMode="decimal" value={txt} onChange={(e) => setTxt(e.target.value.replace(/[^\d.,]/g, ""))} onBlur={commit} onKeyDown={(e) => { if (e.key === "Enter") (e.target as HTMLInputElement).blur(); }} />
       <span aria-hidden="true">%</span>
     </div>
+  );
+}
+
+/** Valor em reais digitado como "12.500,50" (ou "12500.50"). Guarda o texto enquanto a pessoa digita. */
+function MoneyInput({ label, value, onChange }: { label: string; value: number; onChange: (v: number) => void }) {
+  const fmt = (v: number) => (v ? v.toLocaleString("pt-BR", { maximumFractionDigits: 2 }) : "");
+  const [txt, setTxt] = useState(fmt(value));
+  return (
+    <input className="inp num" aria-label={label} inputMode="decimal" value={txt} placeholder="0" style={{ paddingLeft: 44 }}
+      onChange={(e) => { const t = e.target.value.replace(/[^\d.,]/g, ""); setTxt(t); const c = parseMoneyToCents(t); onChange(Number.isFinite(c) ? c / 100 : 0); }}
+      onBlur={() => setTxt(fmt(value))} />
   );
 }
 
@@ -138,13 +149,14 @@ export function ProLabore() {
         </div>
         <div className="card">
           <h3>Meses que formam a média</h3>
+          <p className="ks">Como na planilha: a média divide pelos meses com faturamento, mas as despesas de um mês sem vendas entram na soma do lucro.</p>
           <div className="tbl" style={{ marginTop: 6 }}>
             <table>
               <thead><tr><th>Mês</th><th className="r">Faturamento</th><th className="r">Lucro</th><th className="r">Margem</th></tr></thead>
               <tbody>
                 {year.months.map((m, i) => (
-                  <tr key={i} style={m.revenue ? undefined : { color: "var(--muted)" }}>
-                    <td>{MONTHS[i]}</td><td className="r num">{m.revenue ? brl(m.revenue) : "—"}</td><td className="r num">{m.revenue ? brl(m.profit) : "—"}</td><td className="r num">{m.revenue ? pct(m.margin) : "fora"}</td>
+                  <tr key={i} style={m.revenue || m.profit ? undefined : { color: "var(--muted)" }}>
+                    <td>{MONTHS[i]}</td><td className="r num">{m.revenue ? brl(m.revenue) : "—"}</td><td className="r num">{m.revenue || m.profit ? brl(m.profit) : "—"}</td><td className="r num">{m.revenue ? pct(m.margin) : m.profit ? "sem vendas" : "fora"}</td>
                   </tr>
                 ))}
               </tbody>
@@ -225,7 +237,7 @@ export function Metas() {
           {team.map((p, i) => (
             <div className="trow" key={i}>
               <input className="inp" aria-label="Nome da profissional" placeholder="Nome" value={p.nome} maxLength={40} onChange={(e) => { setDirty(true); setTeam(team.map((x, j) => (j === i ? { ...x, nome: e.target.value } : x))); }} />
-              <div className="money"><span className="pre" style={{ fontSize: 15 }}>R$</span><input className="inp num" aria-label="Faturamento no mês de referência" inputMode="decimal" value={p.base ? Math.round(p.base).toLocaleString("pt-BR") : ""} placeholder="0" onChange={(e) => { setDirty(true); const v = parseInt(e.target.value.replace(/\D/g, ""), 10) || 0; setTeam(team.map((x, j) => (j === i ? { ...x, base: v } : x))); }} style={{ paddingLeft: 44 }} /></div>
+              <div className="money"><span className="pre" style={{ fontSize: 15 }}>R$</span><MoneyInput label="Faturamento no mês de referência" value={p.base} onChange={(v) => { setDirty(true); setTeam(team.map((x, j) => (j === i ? { ...x, base: v } : x))); }} /></div>
               <button className="iconbtn" type="button" aria-label={`Remover ${p.nome || "profissional"}`} onClick={() => { setDirty(true); setTeam(team.filter((_, j) => j !== i)); }}>{Icon.x}</button>
             </div>
           ))}
@@ -271,7 +283,8 @@ export function Reserva() {
   const saved = settings.reserva.guardado;
   const r = reserve(avg.avgFixed, saved);
   const commit = () => {
-    const v = parseFloat(txt.replace(/\./g, "").replace(",", ".")) || 0;
+    const c = parseMoneyToCents(txt);
+    const v = Number.isFinite(c) ? c / 100 : 0;
     if (v !== saved) save({ reserva: { guardado: v } }, "Valor guardado atualizado.");
   };
   return (

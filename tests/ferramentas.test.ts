@@ -68,3 +68,16 @@ describe("ajustes salvos", () => {
     expect(s.meta.scenarios).toHaveLength(3);
   });
 });
+
+describe("médias do ano iguais à planilha", () => {
+  // mês sem vendas, só com despesas fixas: não conta como mês, mas o prejuízo entra na soma
+  const months = [...Array.from({ length: 6 }, () => month(100000, 60000, 25000)), month(0, 0, 12000)];
+  const avg = yearAverages(months);
+  it("divide pelos meses com faturamento e soma o prejuízo do mês sem vendas", () => {
+    expect(avg.n).toBe(6);
+    expect(avg.avgRevenue).toBeCloseTo(100000);
+    expect(avg.avgProfit).toBeCloseTo((6 * 15000 - 12000) / 6);
+    expect(avg.margin).toBeCloseTo((6 * 15000 - 12000) / 600000);
+    expect(avg.avgFixed).toBeCloseTo((6 * 25000 + 12000) / 6);
+  });
+});
