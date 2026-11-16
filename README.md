@@ -18,7 +18,7 @@ npm run dev                  # http://localhost:5173
 
 ## Publicar na Cloudflare
 
-Automático pelo GitHub Actions (`.github/workflows/publicar.yml`): cada push na `main` testa, cria o banco D1 se precisar, aplica as migrações e publica em **app.luizefreire.site**.
+Automático pelo GitHub Actions (`.github/workflows/publicar.yml`): cada push na `main` testa, cria o banco D1 se precisar, aplica as migrações e publica em **alemdacadeira.luizefreire.site**.
 
 - O token da Cloudflare fica no segredo `CLOUDFLARE_API_TOKEN` do repositório (Settings › Secrets and variables › Actions).
 - Conta da administradora: Actions › Publicar na Cloudflare › Run workflow, informando o e-mail. A senha provisória aparece no log do passo "Administradora"; troque no primeiro acesso.
